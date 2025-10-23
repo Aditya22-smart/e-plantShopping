@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { addItem } from './CartSlice';
 import './ProductList.css'
 import CartItem from './CartItem';
 function ProductList({ onHomeClick }) {
     const [showCart, setShowCart] = useState(false);
-    const [showPlants, setShowPlants] = useState(false); // State to control the visibility of the About Us page
+    // Set to true so products show after 'Get Started' and can be accessed via 'Plants' link in navbar
+    const [showPlants, setShowPlants] = useState(true); 
+
+    // Task 1, point 4: Create a variable for state management using the useState hook
+    const [addedToCart, setAddedToCart] = useState({});
+
+    const dispatch = useDispatch();
+    // Task 4, point 2: Access the Redux store to display the total quantity of items
+    const cartQuantity = useSelector(state => 
+        state.cart.items.reduce((total, item) => total + item.quantity, 0)
+    );
 
     const plantsArray = [
         {
@@ -241,17 +253,67 @@ function ProductList({ onHomeClick }) {
     const handleCartClick = (e) => {
         e.preventDefault();
         setShowCart(true); // Set showCart to true when cart icon is clicked
+        setShowPlants(false); // Hide plants when showing cart
     };
+    
     const handlePlantsClick = (e) => {
         e.preventDefault();
-        setShowPlants(true); // Set showAboutUs to true when "About Us" link is clicked
-        setShowCart(false); // Hide the cart when navigating to About Us
+        setShowPlants(true); // Set showPlants to true when "Plants" link is clicked
+        setShowCart(false); // Hide the cart when navigating to Plants
     };
 
     const handleContinueShopping = (e) => {
         e.preventDefault();
         setShowCart(false);
+        setShowPlants(true); // Show plants after continuing shopping
     };
+
+    // Task 1, point 5: Create the handleAddToCart function
+    const handleAddToCart = (plant) => {
+        // Dispatch the item information to the addItem reducer (Task 1, point 5)
+        dispatch(addItem(plant));
+        // Update the setAddedToCart state by setting the product name as a key and its value to true (Task 1, point 5)
+        setAddedToCart({ ...addedToCart, [plant.name]: true });
+    };
+
+    // Function to render the product list content
+    const renderProducts = () => {
+        return (
+            <div className="product-grid">
+                {/* Task 1, point 2: Utilize array methods to map over the plant array */}
+                {plantsArray.map((category, categoryIndex) => (
+                    <div key={categoryIndex} className="plant-category">
+                         <h2 className='plantname_heading'>
+                            <div className='plant_heading'>
+                                 {category.category}
+                            </div>
+                         </h2>
+                        <div className="product-list">
+                            {category.plants.map((plant, plantIndex) => (
+                                <div key={plantIndex} className="product-card">
+                                    <h3 className="product-title">{plant.name}</h3>
+                                    {/* Task 1, point 2: Render each plant's details */}
+                                    <img className="product-image" src={plant.image} alt={plant.name} />
+                                    <p className="product-price">{plant.cost}</p>
+                                    <p className="product-description">{plant.description}</p>
+                                    {/* Task 1, point 3: Display an Add to Cart button for each plant. */}
+                                    <button
+                                        // Task 6, point 7: Button should become disabled and its label should update
+                                        className={`product-button ${addedToCart[plant.name] ? 'added-to-cart' : ''}`}
+                                        onClick={() => handleAddToCart(plant)}
+                                        disabled={addedToCart[plant.name]} 
+                                    >
+                                        {addedToCart[plant.name] ? 'Added to Cart' : 'Add to Cart'}
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+    };
+
     return (
         <div>
             <div className="navbar" style={styleObj}>
@@ -269,14 +331,23 @@ function ProductList({ onHomeClick }) {
                 </div>
                 <div style={styleObjUl}>
                     <div> <a href="#" onClick={(e) => handlePlantsClick(e)} style={styleA}>Plants</a></div>
-                    <div> <a href="#" onClick={(e) => handleCartClick(e)} style={styleA}><h1 className='cart'><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" id="IconChangeColor" height="68" width="68"><rect width="156" height="156" fill="none"></rect><circle cx="80" cy="216" r="12"></circle><circle cx="184" cy="216" r="12"></circle><path d="M42.3,72H221.7l-26.4,92.4A15.9,15.9,0,0,1,179.9,176H84.1a15.9,15.9,0,0,1-15.4-11.6L32.5,37.8A8,8,0,0,0,24.8,32H8" fill="none" stroke="#faf9f9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" id="mainIconPathAttribute"></path></svg></h1></a></div>
+                    <div> <a href="#" onClick={(e) => handleCartClick(e)} style={styleA}>
+                        <h1 className='cart'>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" id="IconChangeColor" height="68" width="68">
+                                <rect width="156" height="156" fill="none"></rect>
+                                <circle cx="80" cy="216" r="12"></circle>
+                                <circle cx="184" cy="216" r="12"></circle>
+                                <path d="M42.3,72H221.7l-26.4,92.4A15.9,15.9,0,0,1,179.9,176H84.1a15.9,15.9,0,0,1-15.4-11.6L32.5,37.8A8,8,0,0,0,24.8,32H8" fill="none" stroke="#faf9f9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" id="mainIconPathAttribute"></path>
+                            </svg>
+                            {/* Display cart quantity (Task 4, point 2) */}
+                            <span className='cart_quantity_count'>{cartQuantity > 0 ? cartQuantity : 0}</span>
+                        </h1>
+                    </a></div>
                 </div>
             </div>
             {!showCart ? (
-                <div className="product-grid">
-
-
-                </div>
+                // Render products when showPlants is true
+                showPlants ? renderProducts() : <div className="product-grid"></div>
             ) : (
                 <CartItem onContinueShopping={handleContinueShopping} />
             )}
